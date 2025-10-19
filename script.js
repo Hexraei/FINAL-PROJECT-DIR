@@ -15,7 +15,7 @@ function getUser() {
 function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    window.location.href = '/login.html';
+    window.location.href = '/index.html';
 }
 function logoutWithConfirmation() {
     if (!logoutConfirmation) {
@@ -42,7 +42,7 @@ function showNotification(message, type = 'success') {
 // --- INITIALIZATION ROUTER ---
 function init() {
     const path = window.location.pathname;
-    if (path === '/' || path.endsWith('/login.html')) initLoginPage();
+    if (path === '/' || path.endsWith('/index.html')) initLoginPage();
     else if (path.endsWith('/register.html')) initRegisterPage();
     else if (path.endsWith('/forgot-password.html')) initForgotPasswordPage();
     else if (path.endsWith('/reset-password.html')) initResetPasswordPage();
@@ -128,7 +128,7 @@ function initResetPasswordPage() { /* Unchanged */ }
 function initProductManagementPage() {
     const user = getUser();
     if (!user || user.role !== 'official') {
-        window.location.href = '/login.html';
+        window.location.href = '/index.html';
         return;
     }
     document.getElementById('logout-button').addEventListener('click', logout);
@@ -177,7 +177,7 @@ async function handleAddProduct(e) {
 function initOfficialEntryPage() {
     const user = getUser();
     if (!user || user.role !== 'official') {
-        window.location.href = '/login.html';
+        window.location.href = '/index.html';
         return;
     }
 
@@ -433,7 +433,7 @@ function showHistoryModal(reportId) {
 // Full implementation of unchanged functions for completeness
 function initReportsViewPage() {
     const user = getUser();
-    if (!user) { window.location.href = '/login.html'; return; }
+    if (!user) { window.location.href = '/index.html'; return; }
     document.getElementById('user-info').textContent = `Welcome, ${user.username}`;
     document.getElementById('logout-button').addEventListener('click', logoutWithConfirmation);
     const backButton = document.getElementById('back-button');
@@ -511,7 +511,7 @@ function initResetPasswordPage() {
             const data = await res.json();
             if (data.success) {
                 showNotification('Password reset! Redirecting to login...', 'success');
-                setTimeout(() => window.location.href = '/login.html', 2000);
+                setTimeout(() => window.location.href = '/index.html', 2000);
             } else { showNotification(data.message, 'error'); }
         } catch (err) { showNotification('An error occurred.', 'error'); }
     });
