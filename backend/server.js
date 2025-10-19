@@ -17,7 +17,7 @@ const app = express();
 // --- CORS Configuration ---
 const allowedOrigins = [
     'http://localhost:5001', // Your local server (for serving files)
-    'https://your-live-frontend-site.netlify.app' // We will get this URL from Netlify
+    'https://data-entry-rm.netlify.app' // We will get this URL from Netlify
 ];
 
 const corsOptions = {
