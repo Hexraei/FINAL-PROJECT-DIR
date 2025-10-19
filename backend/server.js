@@ -14,7 +14,25 @@ const productRoutes = require('./routes/products'); // <-- ADD THIS
 const app = express();
 
 // Middleware
-app.use(cors());
+// --- CORS Configuration ---
+const allowedOrigins = [
+    'http://localhost:5001', // Your local server (for serving files)
+    'https://your-live-frontend-site.netlify.app' // We will get this URL from Netlify
+];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    }
+};
+app.use(cors(corsOptions));
+// --- End CORS Configuration ---
 app.use(express.json());
 
 // Database Connection
