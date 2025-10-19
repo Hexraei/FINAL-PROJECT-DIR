@@ -48,8 +48,8 @@ app.use('/api/products', productRoutes); // <-- ADD THIS
 // --- Static File Serving & Frontend Routing ---
 app.use(express.static(path.join(__dirname, '..')));
 
-app.get(['/', '/login', '/login.html'], (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'login.html'));
+app.get(['/', '/login', '/index.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 app.get(['/register', '/register.html'], (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'register.html'));
@@ -73,7 +73,7 @@ app.get(['/product-management', '/product-management.html'], (req, res) => {
 
 // Fallback to login page
 app.get('*', (req, res) => {
-    res.status(404).sendFile(path.join(__dirname, '..', 'login.html'));
+    res.status(404).sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
