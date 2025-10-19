@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', init);
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://data-entry-idyo.onrender.com/api';
 let logoutConfirmation = false;
 let pageDataCache = []; // Generic cache for report data on a page
 
