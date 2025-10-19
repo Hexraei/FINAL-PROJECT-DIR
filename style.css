@@ -1,0 +1,36 @@
+/* Custom styles for notification popups */
+.notification-popup {
+    position: fixed;
+    top: 5rem; /* Lowered the popup */
+    right: 1.25rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.5s ease-in-out;
+}
+
+.notification-popup.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Improved UI for the datalist input */
+.product-input-wrapper {
+    position: relative;
+}
+
+/* Adds a dropdown arrow to the input field */
+.product-input-wrapper::after {
+    content: '▼';
+    font-size: 0.75rem;
+    color: #6b7280;
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}

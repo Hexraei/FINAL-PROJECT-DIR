@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100">
+
+    <header class="bg-white shadow">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">Product Management</h1>
+            <div class="flex items-center">
+                <a href="/official-entry.html" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">Back to Dashboard</a>
+                <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Add Product Form -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-semibold mb-4">Add New Master Product</h2>
+            <form id="add-product-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="newProductName">Product Name</label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="newProductName" type="text" placeholder="e.g., Brazilian Coffee Beans" required>
+                </div>
+                <div class="flex items-center justify-center mt-6">
+                    <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" type="submit">Add Product</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Existing Products List -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-semibold mb-4">Existing Master Products</h2>
+            <ul id="product-list-ul" class="h-96 overflow-y-auto divide-y divide-gray-200">
+                <!-- Products will be loaded here -->
+            </ul>
+        </div>
+    </main>
+
+    <script defer src="script.js"></script>
+</body>
+</html>

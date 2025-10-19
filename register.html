@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Import & Export</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="w-full max-w-md">
+        <form id="register-form" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h1 class="text-2xl font-bold text-center mb-6">Register</h1>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">Username</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="username" type="text" placeholder="Username" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="email">Email</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="email" type="email" placeholder="Email" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="password">Password</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="password" type="password" placeholder="******************" required minlength="6">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="role">Role</label>
+                <select id="role" class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                    <option value="general">General User</option>
+                    <option value="official">Official</option>
+                </select>
+            </div>
+            <div id="official-key-container" class="mb-6 hidden">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="officialKey">Official Key</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="officialKey" type="password" placeholder="Enter the secret key">
+            </div>
+            <div class="flex items-center justify-center">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" type="submit">Register</button>
+            </div>
+             <p class="text-center text-gray-500 text-xs mt-6">
+                Already have an account? <a href="/login.html" class="text-blue-500 hover:text-blue-800">Login here</a>.
+            </p>
+        </form>
+    </div>
+    <script defer src="script.js"></script>
+</body>
+</html>
