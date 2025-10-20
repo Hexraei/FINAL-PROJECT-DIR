@@ -5,11 +5,16 @@ const {
     getAllReports,
     updateReport,
     deleteReport,
-    getReportSummary
+    getReportSummary,
+    exportReportsToExcel
 } = require('../controllers/reportController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // --- General routes ---
+
+router.route('/export')
+    .get(protect, exportReportsToExcel);
+
 router.route('/')
     .get(protect, getAllReports);
 

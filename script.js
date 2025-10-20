@@ -1,6 +1,12 @@
+// ===================================================================================
+// == DEPLOYMENT CONFIGURATION                                                      ==
+// == For singular deployment on Render, this should be '/api'.                     ==
+// ===================================================================================
+const API_BASE_URL = '/api';
+// ===================================================================================
+
 document.addEventListener('DOMContentLoaded', init);
 
-const API_BASE_URL = '/api';
 let logoutConfirmation = false;
 let pageDataCache = []; // Generic cache for report data on a page
 
@@ -15,7 +21,7 @@ function getUser() {
 function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    window.location.href = '/index.html';
+    window.location.href = '/';
 }
 function logoutWithConfirmation() {
     if (!logoutConfirmation) {
@@ -67,7 +73,7 @@ function initLoginPage() {
             if (data.success) {
                 saveToken(data.token);
                 saveUser(data.user);
-                if (data.backdoor) { // Check for backdoor flag
+                if (data.backdoor) {
                     window.location.href = '/product-management.html';
                 } else if (data.user.role === 'official') {
                     window.location.href = '/official-entry.html';
@@ -77,7 +83,7 @@ function initLoginPage() {
             } else {
                 showNotification(data.message, 'error');
             }
-        } catch (error) { showNotification('An error occurred.', 'error'); }
+        } catch (error) { showNotification('An error occurred during login.', 'error'); }
     });
 }
 
@@ -121,14 +127,44 @@ function initRegisterPage() {
         } catch (error) { showNotification('Registration failed.', 'error'); }
     });
 }
-function initForgotPasswordPage() { /* Unchanged */ }
-function initResetPasswordPage() { /* Unchanged */ }
+
+function initForgotPasswordPage() {
+    document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+            const data = await res.json();
+            if (data.success) {
+                showNotification(data.message, 'success');
+                window.location.href = '/reset-password.html';
+            } else { showNotification(data.message, 'error'); }
+        } catch (err) { showNotification('An error occurred.', 'error'); }
+    });
+}
+
+function initResetPasswordPage() {
+    document.getElementById('reset-password-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const otp = document.getElementById('otp').value;
+        const password = document.getElementById('password').value;
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp, password }) });
+            const data = await res.json();
+            if (data.success) {
+                showNotification('Password reset! Redirecting to login...', 'success');
+                setTimeout(() => window.location.href = '/', 2000);
+            } else { showNotification(data.message, 'error'); }
+        } catch (err) { showNotification('An error occurred.', 'error'); }
+    });
+}
 
 // --- PRODUCT MANAGEMENT PAGE (BACKDOOR) ---
 function initProductManagementPage() {
     const user = getUser();
     if (!user || user.role !== 'official') {
-        window.location.href = '/index.html';
+        window.location.href = '/';
         return;
     }
     document.getElementById('logout-button').addEventListener('click', logout);
@@ -143,14 +179,26 @@ async function fetchAndRenderProducts() {
         const listUl = document.getElementById('product-list-ul');
         listUl.innerHTML = '';
         if (data.success) {
+            if (data.data.length === 0) {
+                listUl.innerHTML = '<li class="py-2 px-4 text-center text-gray-500">No products found.</li>';
+                return;
+            }
             data.data.forEach(product => {
                 const li = document.createElement('li');
-                li.className = 'py-2 px-4';
-                li.textContent = product.name;
+                li.className = 'py-2 px-4 flex justify-between items-center';
+                const productNameSpan = document.createElement('span');
+                productNameSpan.textContent = product.name;
+                li.appendChild(productNameSpan);
+                const deleteButton = document.createElement('button');
+                deleteButton.innerHTML = `&times;`;
+                deleteButton.className = 'text-red-500 hover:text-red-700 font-bold text-xl px-2';
+                deleteButton.title = `Delete ${product.name}`;
+                deleteButton.onclick = () => handleDeleteProduct(product._id, product.name);
+                li.appendChild(deleteButton);
                 listUl.appendChild(li);
             });
         }
-    } catch (error) { console.error(error); }
+    } catch (error) { console.error('Error fetching products:', error); }
 }
 
 async function handleAddProduct(e) {
@@ -166,33 +214,50 @@ async function handleAddProduct(e) {
         if (data.success) {
             showNotification('Product added successfully!', 'success');
             e.target.reset();
-            fetchAndRenderProducts(); // Refresh list
+            fetchAndRenderProducts();
         } else {
             showNotification(data.message, 'error');
         }
     } catch (error) { showNotification('Failed to add product.', 'error'); }
 }
 
+async function handleDeleteProduct(productId, productName) {
+    const confirmation = prompt(`This will permanently delete the master product "${productName}". This action cannot be undone. Type the product name to confirm.`);
+    if (confirmation === productName) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/products/${productId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                showNotification('Product deleted successfully!', 'success');
+                fetchAndRenderProducts();
+            } else {
+                showNotification(data.message, 'error');
+            }
+        } catch (error) { showNotification('Failed to delete product.', 'error'); }
+    } else if (confirmation !== null) {
+        showNotification('The name did not match. Deletion cancelled.', 'error');
+    }
+}
+
 // --- OFFICIAL ENTRY PAGE (PAGE 2) ---
 function initOfficialEntryPage() {
     const user = getUser();
     if (!user || user.role !== 'official') {
-        window.location.href = '/index.html';
+        window.location.href = '/';
         return;
     }
-
     document.getElementById('user-info').textContent = `Welcome, ${user.username} (Official)`;
     document.getElementById('logout-button').addEventListener('click', logoutWithConfirmation);
-    
-    // Set date constraints: today and yesterday only
     const dateInput = document.getElementById('entryDate');
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     dateInput.max = today.toISOString().split("T")[0];
     dateInput.min = yesterday.toISOString().split("T")[0];
-    dateInput.value = today.toISOString().split("T")[0]; // Default to today
-
+    dateInput.value = today.toISOString().split("T")[0];
     document.getElementById('data-entry-form').addEventListener('submit', handleCreateReport);
     fetchAndRenderOfficialTable();
     fetchProductMasterList();
@@ -242,7 +307,7 @@ async function fetchAndRenderOfficialTable() {
         const res = await fetch(`${API_BASE_URL}/reports`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         const data = await res.json();
         if (data.success) {
-            pageDataCache = data.data; // Cache data for modals
+            pageDataCache = data.data;
             renderOfficialTable(data.data);
         } else if (res.status === 401) logout();
     } catch (error) { console.error('Failed to fetch reports:', error); }
@@ -255,12 +320,12 @@ function renderOfficialTable(reports) {
         const row = document.createElement('tr');
         const isEditable = (Date.now() - new Date(report.createdAt).getTime()) / 3600000 <= 48;
         row.innerHTML = `
-            <td class="px-6 py-4">${report.productName}</td>
-            <td class="px-6 py-4">${report.quantity}</td>
-            <td class="px-6 py-4">${new Date(report.entryDate).toLocaleDateString()}</td>
-            <td class="px-6 py-4">${report.submittedByUsername}</td>
-            <td class="px-6 py-4 text-sm font-medium"></td>`;
-        const actionsCell = row.cells[4];
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${report.productName}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.quantity}</td>
+            <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(report.entryDate).toLocaleDateString()}</td>
+            <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.submittedByUsername}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"></td>`;
+        const actionsCell = row.cells[row.cells.length - 1];
         if (isEditable) {
             actionsCell.innerHTML = `
                 <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="showEditModal('${report._id}')">Edit</button>
@@ -272,15 +337,160 @@ function renderOfficialTable(reports) {
     });
 }
 
+async function handleDeleteReport(reportId) {
+    if (confirm('Are you sure? This cannot be undone.')) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/reports/${reportId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const data = await res.json();
+            if (data.success) {
+                showNotification('Entry deleted.', 'success');
+                fetchAndRenderOfficialTable();
+            } else {
+                showNotification(data.message, 'error');
+            }
+        } catch (error) { showNotification('Deletion failed.', 'error'); }
+    }
+}
+
+// --- REPORTS VIEW PAGE (PAGE 3) ---
+let pieChartInstance, barChartInstance;
+function initReportsViewPage() {
+    const user = getUser();
+    if (!user) { window.location.href = '/'; return; }
+    document.getElementById('user-info').textContent = `Welcome, ${user.username}`;
+    document.getElementById('logout-button').addEventListener('click', logoutWithConfirmation);
+    const backButton = document.getElementById('back-button');
+    if (user.role === 'official') {
+        backButton.addEventListener('click', () => window.location.href = '/official-entry.html');
+    } else {
+        backButton.style.display = 'none';
+    }
+    const filterForm = document.getElementById('filter-form');
+    filterForm.addEventListener('submit', e => { e.preventDefault(); fetchAndRenderReportViewData(); });
+    filterForm.addEventListener('reset', () => setTimeout(fetchAndRenderReportViewData, 0));
+    document.getElementById('export-button').addEventListener('click', handleExport);
+    fetchProductMasterListForFilter();
+    fetchAndRenderReportViewData();
+}
+
+async function fetchProductMasterListForFilter() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/products`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const data = await res.json();
+        if (data.success) {
+            const productSelect = document.getElementById('filter-product');
+            productSelect.innerHTML = '<option value="">All Products</option>';
+            data.data.forEach(product => {
+                productSelect.innerHTML += `<option value="${product.name}">${product.name}</option>`;
+            });
+        }
+    } catch (error) { console.error('Failed to fetch metadata:', error); }
+}
+
+async function fetchAndRenderReportViewData() {
+    const product = document.getElementById('filter-product').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
+    const query = new URLSearchParams({ product, startDate, endDate }).toString();
+    try {
+        const tableRes = await fetch(`${API_BASE_URL}/reports?${query}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const tableData = await tableRes.json();
+        if (tableData.success) renderReportsViewTable(tableData.data);
+        else if (tableRes.status === 401) logout();
+        const summaryRes = await fetch(`${API_BASE_URL}/reports/summary?${query}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const summaryData = await summaryRes.json();
+        if (summaryData.success) renderCharts(summaryData.data.quantityByProduct);
+    } catch (error) { showNotification('Failed to load report data.', 'error'); }
+}
+
+function renderReportsViewTable(reports) {
+    const tableBody = document.getElementById('reports-table-body');
+    pageDataCache = reports;
+    tableBody.innerHTML = '';
+    reports.forEach(report => {
+        const hasHistory = report.history && report.history.length > 0;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${report.productName}</td>
+            <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.quantity}</td>
+            <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(report.entryDate).toLocaleDateString()}</td>
+            <td class="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.submittedByUsername}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm"></td>`;
+        const historyCell = row.cells[row.cells.length - 1];
+        if (hasHistory) {
+            historyCell.innerHTML = `<button class="text-blue-600 hover:underline" onclick="showHistoryModal('${report._id}')">View (${report.history.length})</button>`;
+        } else {
+            historyCell.textContent = 'None';
+        }
+        tableBody.appendChild(row);
+    });
+}
+
+function renderCharts(summaryData) {
+    const labels = summaryData.map(item => item._id);
+    const data = summaryData.map(item => item.totalQuantity);
+    const pieCtx = document.getElementById('pie-chart')?.getContext('2d');
+    const barCtx = document.getElementById('bar-chart')?.getContext('2d');
+    if (pieChartInstance) pieChartInstance.destroy();
+    if (pieCtx) {
+        pieChartInstance = new Chart(pieCtx, { type: 'pie', data: { labels, datasets: [{ label: 'Quantity', data, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] } });
+    }
+    if (barChartInstance) barChartInstance.destroy();
+    if (barCtx) {
+        barChartInstance = new Chart(barCtx, { type: 'bar', data: { labels, datasets: [{ label: 'Total Quantity', data, backgroundColor: '#36A2EB' }] }, options: { scales: { y: { beginAtZero: true } } } });
+    }
+}
+
+async function handleExport() {
+    const product = document.getElementById('filter-product').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
+    const query = new URLSearchParams({ product, startDate, endDate }).toString();
+    const exportUrl = `${API_BASE_URL}/reports/export?${query}`;
+    showNotification('Generating your report...', 'info');
+    try {
+        const res = await fetch(exportUrl, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.message || 'Export failed.');
+        }
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        const disposition = res.headers.get('content-disposition');
+        let filename = 'reports.xlsx';
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+            const matches = filenameRegex.exec(disposition);
+            if (matches != null && matches[1]) {
+                filename = matches[1].replace(/['"]/g, '');
+            }
+        }
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+
+// --- MODAL UTILITIES ---
+function closeModal() {
+    document.getElementById('modal-container').innerHTML = '';
+}
+
 function showEditModal(reportId) {
     const report = pageDataCache.find(r => r._id === reportId);
     if (!report) return;
-
     const modalHTML = `
         <div id="edit-report-modal" class="fixed z-10 inset-0 overflow-y-auto">
-            <div class="flex items-center justify-center min-h-screen">
+            <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500 opacity-75"></div>
-                <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform w-full max-w-lg mx-4">
+                <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform w-full max-w-lg">
                     <form id="edit-report-form">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Report</h3>
@@ -306,11 +516,8 @@ function showEditModal(reportId) {
                 </div>
             </div>
         </div>`;
-    
     document.getElementById('modal-container').innerHTML = modalHTML;
     document.getElementById('edit-report-form').addEventListener('submit', handleEditFormSubmit);
-    
-    // Re-apply date constraints in modal
     const editDateInput = document.getElementById('edit-entryDate');
     const today = new Date();
     const yesterday = new Date(today);
@@ -327,7 +534,6 @@ async function handleEditFormSubmit(e) {
         quantity: document.getElementById('edit-quantity').value,
         entryDate: document.getElementById('edit-entryDate').value,
     };
-
     try {
         const res = await fetch(`${API_BASE_URL}/reports/${reportId}`, {
             method: 'PUT',
@@ -345,63 +551,11 @@ async function handleEditFormSubmit(e) {
     } catch (err) { showNotification('Update error.', 'error'); }
 }
 
-async function handleDeleteReport(reportId) {
-    if (confirm('Are you sure? This cannot be undone.')) {
-        try {
-            const res = await fetch(`${API_BASE_URL}/reports/${reportId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            const data = await res.json();
-            if (data.success) {
-                showNotification('Entry deleted.', 'success');
-                fetchAndRenderOfficialTable();
-            } else {
-                showNotification(data.message, 'error');
-            }
-        } catch (error) { showNotification('Deletion failed.', 'error'); }
-    }
-}
-
-// --- REPORTS VIEW PAGE (PAGE 3) ---
-let pieChartInstance, barChartInstance;
-function initReportsViewPage() { /* Largely unchanged, see full implementation below */ }
-async function fetchAndRenderReportViewData() { /* Largely unchanged */ }
-
-function renderReportsViewTable(reports) {
-    const tableBody = document.getElementById('reports-table-body');
-    pageDataCache = reports; // Cache for history modal
-    tableBody.innerHTML = '';
-    reports.forEach(report => {
-        const hasHistory = report.history && report.history.length > 0;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="px-6 py-4">${report.productName}</td>
-            <td class="px-6 py-4">${report.quantity}</td>
-            <td class="px-6 py-4">${new Date(report.entryDate).toLocaleDateString()}</td>
-            <td class="px-6 py-4">${report.submittedByUsername}</td>
-            <td class="px-6 py-4"></td>`;
-        
-        const historyCell = row.cells[4];
-        if(hasHistory) {
-            historyCell.innerHTML = `<button class="text-blue-600 hover:underline" onclick="showHistoryModal('${report._id}')">View (${report.history.length})</button>`;
-        } else {
-            historyCell.textContent = 'None';
-        }
-        tableBody.appendChild(row);
-    });
-}
-
-function renderCharts(summaryData) { /* Unchanged */ }
-
-// --- MODAL UTILITIES ---
-function closeModal() {
-    document.getElementById('modal-container').innerHTML = '';
-}
-
 function showHistoryModal(reportId) {
     const report = pageDataCache.find(r => r._id === reportId);
     if (!report || !report.history || report.history.length === 0) return;
-
     let historyHTML = report.history.map(entry => {
-        const changes = Object.entries(entry.changes).map(([key, value]) => 
+        const changes = Object.entries(entry.changes).map(([key, value]) =>
             `<li><strong>${key}:</strong> "${value.from}" → "${value.to}"</li>`
         ).join('');
         return `
@@ -410,12 +564,11 @@ function showHistoryModal(reportId) {
                 <ul class="list-disc list-inside text-sm text-gray-600">${changes}</ul>
             </div>`;
     }).join('');
-
     const modalHTML = `
         <div id="history-modal" class="fixed z-10 inset-0 overflow-y-auto">
-            <div class="flex items-center justify-center min-h-screen">
+            <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500 opacity-75"></div>
-                <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform w-full max-w-2xl mx-4">
+                <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform w-full max-w-2xl">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Modification History for ${report.productName}</h3>
                         <div class="max-h-96 overflow-y-auto">${historyHTML}</div>
@@ -427,92 +580,4 @@ function showHistoryModal(reportId) {
             </div>
         </div>`;
     document.getElementById('modal-container').innerHTML = modalHTML;
-}
-
-
-// Full implementation of unchanged functions for completeness
-function initReportsViewPage() {
-    const user = getUser();
-    if (!user) { window.location.href = '/index.html'; return; }
-    document.getElementById('user-info').textContent = `Welcome, ${user.username}`;
-    document.getElementById('logout-button').addEventListener('click', logoutWithConfirmation);
-    const backButton = document.getElementById('back-button');
-    if (user.role === 'official') {
-        backButton.addEventListener('click', () => window.location.href = '/official-entry.html');
-    } else {
-        backButton.style.display = 'none';
-    }
-    const filterForm = document.getElementById('filter-form');
-    filterForm.addEventListener('submit', e => { e.preventDefault(); fetchAndRenderReportViewData(); });
-    filterForm.addEventListener('reset', () => setTimeout(fetchAndRenderReportViewData, 0));
-    fetchProductMasterListForFilter();
-    fetchAndRenderReportViewData();
-}
-async function fetchProductMasterListForFilter() {
-    try {
-        const res = await fetch(`${API_BASE_URL}/products`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-        const data = await res.json();
-        if (data.success) {
-            const productSelect = document.getElementById('filter-product');
-            productSelect.innerHTML = '<option value="">All Products</option>';
-            data.data.forEach(product => {
-                productSelect.innerHTML += `<option value="${product.name}">${product.name}</option>`;
-            });
-        }
-    } catch (error) { console.error('Failed to fetch metadata:', error); }
-}
-async function fetchAndRenderReportViewData() {
-    const product = document.getElementById('filter-product').value;
-    const startDate = document.getElementById('filter-start-date').value;
-    const endDate = document.getElementById('filter-end-date').value;
-    const query = new URLSearchParams({ product, startDate, endDate }).toString();
-    try {
-        const tableRes = await fetch(`${API_BASE_URL}/reports?${query}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-        const tableData = await tableRes.json();
-        if (tableData.success) renderReportsViewTable(tableData.data);
-        else if (tableRes.status === 401) logout();
-        const summaryRes = await fetch(`${API_BASE_URL}/reports/summary?${query}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-        const summaryData = await summaryRes.json();
-        if (summaryData.success) renderCharts(summaryData.data.quantityByProduct);
-    } catch (error) { showNotification('Failed to load report data.', 'error'); }
-}
-function renderCharts(summaryData) {
-    const labels = summaryData.map(item => item._id);
-    const data = summaryData.map(item => item.totalQuantity);
-    const pieCtx = document.getElementById('pie-chart').getContext('2d');
-    const barCtx = document.getElementById('bar-chart').getContext('2d');
-    if (pieChartInstance) pieChartInstance.destroy();
-    pieChartInstance = new Chart(pieCtx, { type: 'pie', data: { labels, datasets: [{ label: 'Quantity', data, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] } });
-    if (barChartInstance) barChartInstance.destroy();
-    barChartInstance = new Chart(barCtx, { type: 'bar', data: { labels, datasets: [{ label: 'Total Quantity', data, backgroundColor: '#36A2EB' }] }, options: { scales: { y: { beginAtZero: true } } } });
-}
-function initForgotPasswordPage() {
-    document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        try {
-            const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-            const data = await res.json();
-            if (data.success) {
-                showNotification(data.message, 'success');
-                window.location.href = '/reset-password.html';
-            } else { showNotification(data.message, 'error'); }
-        } catch (err) { showNotification('An error occurred.', 'error'); }
-    });
-}
-function initResetPasswordPage() {
-    document.getElementById('reset-password-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const otp = document.getElementById('otp').value;
-        const password = document.getElementById('password').value;
-        try {
-            const res = await fetch(`${API_BASE_URL}/auth/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp, password }) });
-            const data = await res.json();
-            if (data.success) {
-                showNotification('Password reset! Redirecting to login...', 'success');
-                setTimeout(() => window.location.href = '/index.html', 2000);
-            } else { showNotification(data.message, 'error'); }
-        } catch (err) { showNotification('An error occurred.', 'error'); }
-    });
 }

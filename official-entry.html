@@ -5,23 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Official Data Entry</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body class="bg-gray-100">
     <header class="bg-white shadow">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800">Official Dashboard</h1>
+        <div class="container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+            <h1 class="text-lg sm:text-xl font-bold text-gray-800">Official Dashboard</h1>
             <div class="flex items-center">
-                <div id="user-info" class="text-gray-700 mr-4"></div>
-                <a href="/reports-view.html" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">View Reports</a>
-                <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Logout</button>
+                <a href="/reports-view.html" class="text-xs sm:text-sm bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-3 sm:px-4 rounded mr-2">Reports</a>
+                <button id="logout-button" class="text-xs sm:text-sm bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-3 sm:px-4 rounded">Logout</button>
             </div>
         </div>
+        <div id="user-info" class="text-center bg-gray-50 py-1 text-sm text-gray-600"></div>
     </header>
 
-    <main class="container mx-auto px-6 py-8">
+    <main class="container mx-auto px-4 sm:px-6 py-8">
         <div class="w-full max-w-lg mx-auto bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 class="text-lg font-semibold mb-4">Add New Entry</h2>
+            <h2 class="text-lg font-semibold mb-4 text-center">Add New Entry</h2>
             <form id="data-entry-form">
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="productName">Product Name</label>
@@ -39,20 +39,20 @@
                     <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="entryDate" type="date" required>
                 </div>
                 <div class="flex items-center justify-center mt-6">
-                    <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit Entry</button>
+                    <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto" type="submit">Submit Entry</button>
                 </div>
             </form>
         </div>
 
         <div class="overflow-x-auto bg-white rounded-lg shadow-md">
-            <h2 class="text-lg font-semibold p-4">Recent Entries (Editable for 48 Hours)</h2>
+            <h2 class="text-lg font-semibold p-4 text-center sm:text-left">Recent Entries (Editable for 48 Hours)</h2>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entry Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+                        <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                 </thead>
@@ -61,7 +61,6 @@
         </div>
     </main>
 
-    <!-- Modals will be injected here by script.js -->
     <div id="modal-container"></div>
     <script defer src="/script.js"></script>
 </body>

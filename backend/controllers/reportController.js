@@ -1,5 +1,6 @@
 const Report = require('../models/Report');
 const moment = require('moment'); // Using moment for easier date comparison
+const ExcelJS = require('exceljs');
 
 // Helper for date validation
 const isValidEntryDate = (date) => {
@@ -117,5 +118,78 @@ exports.getReportSummary = async (req, res) => {
         res.status(200).json({ success: true, data: { quantityByProduct } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.exportReportsToExcel = async (req, res) => {
+    try {
+        // Reuse the same filtering logic as getAllReports
+        let query = {};
+        const { product, startDate, endDate } = req.query;
+
+        if (product) query.productName = product;
+        if (startDate || endDate) {
+            query.entryDate = {};
+            if (startDate) query.entryDate.$gte = new Date(startDate);
+            if (endDate) query.entryDate.$lte = new Date(endDate);
+        }
+
+        const reports = await Report.find(query).sort({ entryDate: -1 });
+
+        // Create a new Excel workbook and worksheet
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'ImportExportApp';
+        workbook.created = new Date();
+        const worksheet = workbook.addWorksheet('Reports');
+
+        // Define columns
+        worksheet.columns = [
+            { header: 'Product Name', key: 'productName', width: 30 },
+            { header: 'Quantity (kg)', key: 'quantity', width: 15 },
+            { header: 'Entry Date', key: 'entryDate', width: 15 },
+            { header: 'Submitted By', key: 'submittedByUsername', width: 20 },
+            { header: 'Original Entry Timestamp', key: 'createdAt', width: 25 },
+            { header: 'Modifications', key: 'modifications', width: 15 },
+        ];
+        
+        // Style the header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern:'solid',
+            fgColor:{argb:'FFDDDDDD'}
+        };
+
+
+        // Add data rows from the reports
+        reports.forEach(report => {
+            worksheet.addRow({
+                productName: report.productName,
+                quantity: report.quantity,
+                entryDate: moment(report.entryDate).format('YYYY-MM-DD'),
+                submittedByUsername: report.submittedByUsername,
+                createdAt: moment(report.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+                modifications: report.history.length
+            });
+        });
+        
+        // Set headers to trigger a file download
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="reports_${moment().format('YYYY_MM_DD')}.xlsx"`
+        );
+
+        // Write the workbook to the response
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error('Excel Export Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to export data.' });
     }
 };
