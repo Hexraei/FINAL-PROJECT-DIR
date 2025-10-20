@@ -18,7 +18,7 @@ const syncModels = async () => {
     try {
         // alter: true will check the current state of the table in the database 
         // and then performs the necessary changes in the table to make it match the model.
-        await sequelize.sync({ alter: true }); 
+        await sequelize.sync({ force: false }); 
         console.log("All models were synchronized successfully.");
     } catch (error) {
         console.error('Unable to synchronize models with the database:', error);
