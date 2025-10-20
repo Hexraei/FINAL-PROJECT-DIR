@@ -10,15 +10,8 @@ Welcome to the Import & Export Data Entry Application. This guide will walk you 
 4.  [Logging In](#4-logging-in)
 5.  [Password Reset](#5-password-reset)
 6.  [For Official Users: The Dashboard](#6-for-official-users-the-dashboard)
-    -   [Adding a New Data Entry](#adding-a-new-data-entry)
-    -   [Viewing, Editing, and Deleting Entries](#viewing-editing-and-deleting-entries)
 7.  [For All Users: The Reports Page](#7-for-all-users-the-reports-page)
-    -   [Filtering Reports](#filtering-reports)
-    -   [Viewing Charts and Data Tables](#viewing-charts-and-data-tables)
-    -   [Exporting Data to Excel](#exporting-data-to-excel)
 8.  [For Administrators: Product Management (Backdoor)](#8-for-administrators-product-management-backdoor)
-    -   [Accessing the Product Management Page](#accessing-the-product-management-page)
-    -   [Adding and Deleting Master Products](#adding-and-deleting-master-products)
 
 ---
 
@@ -84,8 +77,6 @@ The **"Recent Entries"** table shows all submitted data.
 -   **Edit:** Click the **"Edit"** button on a row. A pop-up window will appear, allowing you to change the Product Name, Quantity, or Date. Click "Save" to confirm.
 -   **Delete:** Click the **"Delete"** button. A browser confirmation pop-up will appear. Click "OK" to permanently delete the record.
 
-
-
 ### 7. For All Users: The Reports Page
 
 This page provides a comprehensive view of all data in the system. Officials can access this page by clicking the "View Reports" button from their dashboard. General Users are taken here directly after logging in.
@@ -103,8 +94,6 @@ At the top of the page, you can filter the data shown in the charts and table.
 
 -   **Charts:** The Pie and Bar charts provide a visual summary of the total quantity for each product based on your current filters.
 -   **Data Table:** The table at the bottom shows the detailed records matching your filters. It includes the product name, quantity, date, and who submitted it. If a record has been modified, you can click the **"View (X)"** button to see a detailed history of all changes, including what was changed, by whom, and when.
-
-
 
 #### Exporting Data to Excel
 

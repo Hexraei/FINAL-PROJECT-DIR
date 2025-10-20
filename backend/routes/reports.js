@@ -10,22 +10,15 @@ const {
 } = require('../controllers/reportController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// --- General routes ---
-
 router.route('/export')
     .get(protect, exportReportsToExcel);
 
 router.route('/')
-    .get(protect, getAllReports);
-
-// The '/meta' route was removed as it's replaced by the /api/products endpoint
+    .get(protect, getAllReports)
+    .post(protect, authorize('official'), createReport);
 
 router.route('/summary')
     .get(protect, getReportSummary);
-
-// --- Official-only routes ---
-router.route('/')
-    .post(protect, authorize('official'), createReport);
 
 router.route('/:id')
     .put(protect, authorize('official'), updateReport)

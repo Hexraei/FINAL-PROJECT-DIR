@@ -193,7 +193,7 @@ async function fetchAndRenderProducts() {
                 deleteButton.innerHTML = `&times;`;
                 deleteButton.className = 'text-red-500 hover:text-red-700 font-bold text-xl px-2';
                 deleteButton.title = `Delete ${product.name}`;
-                deleteButton.onclick = () => handleDeleteProduct(product._id, product.name);
+                deleteButton.onclick = () => handleDeleteProduct(product.id, product.name);
                 li.appendChild(deleteButton);
                 listUl.appendChild(li);
             });
@@ -328,8 +328,8 @@ function renderOfficialTable(reports) {
         const actionsCell = row.cells[row.cells.length - 1];
         if (isEditable) {
             actionsCell.innerHTML = `
-                <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="showEditModal('${report._id}')">Edit</button>
-                <button class="text-red-600 hover:text-red-900" onclick="handleDeleteReport('${report._id}')">Delete</button>`;
+                <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="showEditModal('${report.id}')">Edit</button>
+                <button class="text-red-600 hover:text-red-900" onclick="handleDeleteReport('${report.id}')">Delete</button>`;
         } else {
             actionsCell.textContent = 'Locked';
         }
@@ -418,7 +418,7 @@ function renderReportsViewTable(reports) {
             <td class="px-6 py-4 whitespace-nowrap text-sm"></td>`;
         const historyCell = row.cells[row.cells.length - 1];
         if (hasHistory) {
-            historyCell.innerHTML = `<button class="text-blue-600 hover:underline" onclick="showHistoryModal('${report._id}')">View (${report.history.length})</button>`;
+            historyCell.innerHTML = `<button class="text-blue-600 hover:underline" onclick="showHistoryModal('${report.id}')">View (${report.history.length})</button>`;
         } else {
             historyCell.textContent = 'None';
         }
@@ -484,7 +484,7 @@ function closeModal() {
 }
 
 function showEditModal(reportId) {
-    const report = pageDataCache.find(r => r._id === reportId);
+    const report = pageDataCache.find(r => r.id === reportId);
     if (!report) return;
     const modalHTML = `
         <div id="edit-report-modal" class="fixed z-10 inset-0 overflow-y-auto">
@@ -494,7 +494,7 @@ function showEditModal(reportId) {
                     <form id="edit-report-form">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Report</h3>
-                            <input type="hidden" id="edit-report-id" value="${report._id}">
+                            <input type="hidden" id="edit-report-id" value="${report.id}">
                             <div class="mb-4">
                                 <label for="edit-productName" class="block text-sm font-medium">Product Name</label>
                                 <input list="product-list" id="edit-productName" value="${report.productName}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
@@ -505,7 +505,7 @@ function showEditModal(reportId) {
                             </div>
                             <div class="mb-4">
                                 <label for="edit-entryDate" class="block text-sm font-medium">Entry Date</label>
-                                <input type="date" id="edit-entryDate" value="${report.entryDate.split('T')[0]}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                                <input type="date" id="edit-entryDate" value="${new Date(report.entryDate).toISOString().split('T')[0]}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
                             </div>
                         </div>
                         <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
@@ -552,7 +552,7 @@ async function handleEditFormSubmit(e) {
 }
 
 function showHistoryModal(reportId) {
-    const report = pageDataCache.find(r => r._id === reportId);
+    const report = pageDataCache.find(r => r.id == reportId); // Use == for type flexibility
     if (!report || !report.history || report.history.length === 0) return;
     let historyHTML = report.history.map(entry => {
         const changes = Object.entries(entry.changes).map(([key, value]) =>

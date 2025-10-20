@@ -1,45 +1,28 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const HistorySchema = new mongoose.Schema({
-    modifiedAt: {
-        type: Date,
-        default: Date.now
-    },
-    modifiedBy: {
-        type: String,
-        required: true
-    },
-    changes: {
-        productName: { from: String, to: String },
-        quantity: { from: Number, to: Number },
-        entryDate: { from: Date, to: Date },
-    }
-}, { _id: false });
-
-const ReportSchema = new mongoose.Schema({
+const Report = sequelize.define('Report', {
     productName: {
-        type: String,
-        required: [true, 'Please provide a product name'],
-        trim: true,
+        type: DataTypes.STRING,
+        allowNull: false,
     },
     quantity: {
-        type: Number,
-        required: [true, 'Please provide a quantity'],
+        type: DataTypes.INTEGER,
+        allowNull: false,
     },
     entryDate: {
-        type: Date,
-        required: [true, 'Please provide an entry date']
-    },
-    submittedBy: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'User',
-        required: true,
+        type: DataTypes.DATEONLY, // Stores date as YYYY-MM-DD
+        allowNull: false,
     },
     submittedByUsername: {
-        type: String,
-        required: true,
+        type: DataTypes.STRING,
+        allowNull: false,
     },
-    history: [HistorySchema]
-}, { timestamps: true }); // `createdAt` will be our original timestamp
+    history: {
+        type: DataTypes.JSON, // Use JSON type for flexible history storage
+        defaultValue: []
+    }
+    // submittedById is added automatically via association in models/index.js
+});
 
-module.exports = mongoose.model('Report', ReportSchema);
+module.exports = Report;

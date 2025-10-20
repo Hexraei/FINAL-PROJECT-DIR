@@ -1,12 +1,14 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const ProductSchema = new mongoose.Schema({
+const Product = sequelize.define('Product', {
     name: {
-        type: String,
-        required: [true, 'Please provide a product name'],
-        unique: true,
-        trim: true,
-    },
-}, { timestamps: true });
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true
+    }
+}, {
+    // Sequelize automatically adds createdAt and updatedAt timestamps
+});
 
-module.exports = mongoose.model('Product', ProductSchema);
+module.exports = Product;

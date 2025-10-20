@@ -1,8 +1,9 @@
-const Report = require('../models/Report');
-const moment = require('moment'); // Using moment for easier date comparison
+const { Report, sequelize } = require('../models');
+const { Op } = require('sequelize');
+const moment = require('moment');
 const ExcelJS = require('exceljs');
 
-// Helper for date validation
+// Helper to validate that the entry date is today or yesterday
 const isValidEntryDate = (date) => {
     const entryDate = moment(date).startOf('day');
     const today = moment().startOf('day');
@@ -10,139 +11,94 @@ const isValidEntryDate = (date) => {
     return entryDate.isSame(today) || entryDate.isSame(yesterday);
 };
 
+// Helper to build the WHERE clause for Sequelize queries based on request query params
+const buildReportQuery = (queryParams) => {
+    const { product, startDate, endDate } = queryParams;
+    let where = {};
+    if (product) where.productName = product;
+    if (startDate || endDate) {
+        where.entryDate = {};
+        if (startDate) where.entryDate[Op.gte] = new Date(startDate);
+        if (endDate) where.entryDate[Op.lte] = new Date(endDate);
+    }
+    return where;
+};
+
 exports.createReport = async (req, res) => {
     try {
-        if (!isValidEntryDate(req.body.entryDate)) {
-            return res.status(400).json({ success: false, message: 'Entry date must be today or yesterday.' });
-        }
-
-        const reportData = {
+        if (!isValidEntryDate(req.body.entryDate)) return res.status(400).json({ success: false, message: 'Entry date must be today or yesterday.' });
+        const report = await Report.create({
             ...req.body,
-            submittedBy: req.user._id,
+            submittedById: req.user.id,
             submittedByUsername: req.user.username,
-        };
-        const report = await Report.create(reportData);
+        });
         res.status(201).json({ success: true, data: report });
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
+    } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 };
 
 exports.getAllReports = async (req, res) => {
     try {
-        let query = {};
-        const { product, startDate, endDate } = req.query;
-
-        if (product) query.productName = product;
-        if (startDate || endDate) {
-            query.entryDate = {};
-            if (startDate) query.entryDate.$gte = new Date(startDate);
-            if (endDate) query.entryDate.$lte = new Date(endDate);
-        }
-
-        const reports = await Report.find(query).sort({ entryDate: -1 });
+        const where = buildReportQuery(req.query);
+        const reports = await Report.findAll({ where, order: [['entryDate', 'DESC'], ['createdAt', 'DESC']] });
         res.status(200).json({ success: true, count: reports.length, data: reports });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
 exports.updateReport = async (req, res) => {
     try {
-        const report = await Report.findById(req.params.id);
-        if (!report) {
-            return res.status(404).json({ success: false, message: 'Report not found' });
-        }
-
-        const timeDiff = Date.now() - new Date(report.createdAt).getTime();
-        const hoursDiff = timeDiff / (1000 * 3600);
-        if (hoursDiff > 48) {
-            return res.status(403).json({ success: false, message: 'Cannot modify a report after 48 hours' });
-        }
+        const report = await Report.findByPk(req.params.id);
+        if (!report) return res.status(404).json({ success: false, message: 'Report not found' });
+        if ((Date.now() - new Date(report.createdAt).getTime()) / 3600000 > 48) return res.status(403).json({ success: false, message: 'Cannot modify a report after 48 hours' });
+        if (req.body.entryDate && !isValidEntryDate(req.body.entryDate)) return res.status(400).json({ success: false, message: 'Entry date must be today or yesterday.' });
         
-        if (req.body.entryDate && !isValidEntryDate(req.body.entryDate)) {
-             return res.status(400).json({ success: false, message: 'Entry date must be today or yesterday.' });
-        }
-
-        // Log history of changes
         const changes = {};
         if (req.body.productName && req.body.productName !== report.productName) changes.productName = { from: report.productName, to: req.body.productName };
         if (req.body.quantity && req.body.quantity != report.quantity) changes.quantity = { from: report.quantity, to: req.body.quantity };
-        if (req.body.entryDate && new Date(req.body.entryDate).toISOString() !== report.entryDate.toISOString()) changes.entryDate = { from: report.entryDate, to: new Date(req.body.entryDate) };
-
-        if (Object.keys(changes).length > 0) {
-            report.history.push({
-                modifiedBy: req.user.username,
-                changes: changes,
-            });
-        }
+        if (req.body.entryDate && new Date(req.body.entryDate).toISOString().split('T')[0] !== report.entryDate) changes.entryDate = { from: report.entryDate, to: req.body.entryDate };
         
-        report.productName = req.body.productName || report.productName;
-        report.quantity = req.body.quantity || report.quantity;
-        report.entryDate = req.body.entryDate || report.entryDate;
+        let currentHistory = report.history || [];
+        if (Object.keys(changes).length > 0) {
+            currentHistory.push({ modifiedBy: req.user.username, modifiedAt: new Date(), changes });
+        }
 
-        const updatedReport = await report.save();
-        res.status(200).json({ success: true, data: updatedReport });
-
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
+        await report.update({ ...req.body, history: currentHistory });
+        res.status(200).json({ success: true, data: report });
+    } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 };
 
 exports.deleteReport = async (req, res) => {
     try {
-        const report = await Report.findById(req.params.id);
-        if (!report) {
-            return res.status(404).json({ success: false, message: 'Report not found' });
-        }
-
-        const timeDiff = Date.now() - new Date(report.createdAt).getTime();
-        const hoursDiff = timeDiff / (1000 * 3600);
-        if (hoursDiff > 48) {
-            return res.status(403).json({ success: false, message: 'Cannot delete a report after 48 hours' });
-        }
-
-        await report.deleteOne();
+        const report = await Report.findByPk(req.params.id);
+        if (!report) return res.status(404).json({ success: false, message: 'Report not found' });
+        if ((Date.now() - new Date(report.createdAt).getTime()) / 3600000 > 48) return res.status(403).json({ success: false, message: 'Cannot delete a report after 48 hours' });
+        await report.destroy();
         res.status(200).json({ success: true, data: {} });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
 exports.getReportSummary = async (req, res) => {
     try {
-        const quantityByProduct = await Report.aggregate([
-            { $group: { _id: '$productName', totalQuantity: { $sum: '$quantity' } } },
-            { $sort: { totalQuantity: -1 } }
-        ]);
-        res.status(200).json({ success: true, data: { quantityByProduct } });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+        const where = buildReportQuery(req.query);
+        const quantityByProduct = await Report.findAll({
+            where,
+            attributes: ['productName', [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity']],
+            group: ['productName'],
+            order: [[sequelize.fn('SUM', sequelize.col('quantity')), 'DESC']]
+        });
+        // Remap the result to match the frontend's expected format {_id, totalQuantity}
+        const formattedResult = quantityByProduct.map(r => ({_id: r.productName, totalQuantity: r.dataValues.totalQuantity}));
+        res.status(200).json({ success: true, data: { quantityByProduct: formattedResult } });
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
 exports.exportReportsToExcel = async (req, res) => {
     try {
-        // Reuse the same filtering logic as getAllReports
-        let query = {};
-        const { product, startDate, endDate } = req.query;
-
-        if (product) query.productName = product;
-        if (startDate || endDate) {
-            query.entryDate = {};
-            if (startDate) query.entryDate.$gte = new Date(startDate);
-            if (endDate) query.entryDate.$lte = new Date(endDate);
-        }
-
-        const reports = await Report.find(query).sort({ entryDate: -1 });
-
-        // Create a new Excel workbook and worksheet
+        const where = buildReportQuery(req.query);
+        const reports = await Report.findAll({ where, order: [['entryDate', 'DESC']] });
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'ImportExportApp';
+        workbook.creator = 'DataEntryApp';
         workbook.created = new Date();
         const worksheet = workbook.addWorksheet('Reports');
-
-        // Define columns
         worksheet.columns = [
             { header: 'Product Name', key: 'productName', width: 30 },
             { header: 'Quantity', key: 'quantity', width: 15 },
@@ -151,45 +107,26 @@ exports.exportReportsToExcel = async (req, res) => {
             { header: 'Original Entry Timestamp', key: 'createdAt', width: 25 },
             { header: 'Modifications', key: 'modifications', width: 15 },
         ];
-        
-        // Style the header row
         worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-        worksheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern:'solid',
-            fgColor:{argb:'FFDDDDDD'}
-        };
-
-
-        // Add data rows from the reports
+        worksheet.getRow(1).fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'FFDDDDDD'} };
+        
         reports.forEach(report => {
             worksheet.addRow({
                 productName: report.productName,
                 quantity: report.quantity,
-                entryDate: moment(report.entryDate).format('YYYY-MM-DD'),
+                entryDate: report.entryDate, // Already YYYY-MM-DD
                 submittedByUsername: report.submittedByUsername,
                 createdAt: moment(report.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-                modifications: report.history.length
+                modifications: report.history ? report.history.length : 0
             });
         });
         
-        // Set headers to trigger a file download
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="reports_${moment().format('YYYY_MM_DD')}.xlsx"`
-        );
-
-        // Write the workbook to the response
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="reports_${moment().format('YYYY_MM_DD')}.xlsx"`);
         await workbook.xlsx.write(res);
         res.end();
-
-    } catch (error) {
+    } catch (error) { 
         console.error('Excel Export Error:', error);
-        res.status(500).json({ success: false, message: 'Failed to export data.' });
+        res.status(500).json({ success: false, message: 'Failed to export data.' }); 
     }
 };
