@@ -26,7 +26,7 @@ Welcome to the Import & Export Data Entry Application. This guide will walk you 
 
 You can access the application by navigating to the following web address in your browser:
 
-**https://data-entry-idyo.onrender.com** *(<- Replace this with your actual live URL)*
+**https://data-entry-idyo.onrender.com**
 
 The first page you will see is the login screen.
 
@@ -47,8 +47,6 @@ If you don't have an account, you can create one from the login page.
     -   If you select **"General User"**, you can proceed to register.
     -   If you select **"Official"**, a new field will appear. You must enter the **Official Key** provided by your administrator to complete registration.
 4.  Click the **"Register"** button. You will be automatically logged in.
-
- *(Note: It's highly recommended you take screenshots of your actual application and replace these placeholder image links.)*
 
 ### 4. Logging In
 
@@ -74,7 +72,7 @@ This is the main page for Officials, where data is managed.
 #### Adding a New Data Entry
 
 1.  In the **"Add New Entry"** form, begin typing a **Product Name**. A dropdown list of existing master products will appear. You can select one or type a new one.
-2.  Enter the **Quantity** (in kg).
+2.  Enter the **Quantity**.
 3.  Select the **Date** of the entry. You can only select today's date or yesterday's date.
 4.  Click **"Submit Entry"**. The new record will appear in the "Recent Entries" table below.
 
