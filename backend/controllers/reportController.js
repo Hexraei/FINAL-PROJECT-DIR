@@ -145,7 +145,7 @@ exports.exportReportsToExcel = async (req, res) => {
         // Define columns
         worksheet.columns = [
             { header: 'Product Name', key: 'productName', width: 30 },
-            { header: 'Quantity (kg)', key: 'quantity', width: 15 },
+            { header: 'Quantity', key: 'quantity', width: 15 },
             { header: 'Entry Date', key: 'entryDate', width: 15 },
             { header: 'Submitted By', key: 'submittedByUsername', width: 20 },
             { header: 'Original Entry Timestamp', key: 'createdAt', width: 25 },
