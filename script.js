@@ -484,8 +484,12 @@ function closeModal() {
 }
 
 function showEditModal(reportId) {
-    const report = pageDataCache.find(r => r.id === reportId);
-    if (!report) return;
+    const report = pageDataCache.find(r => r.id == reportId); 
+    if (!report) {
+        showNotification('Could not find the report to edit.', 'error');
+        return;
+    }
+
     const modalHTML = `
         <div id="edit-report-modal" class="fixed z-10 inset-0 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4">
@@ -518,6 +522,7 @@ function showEditModal(reportId) {
         </div>`;
     document.getElementById('modal-container').innerHTML = modalHTML;
     document.getElementById('edit-report-form').addEventListener('submit', handleEditFormSubmit);
+
     const editDateInput = document.getElementById('edit-entryDate');
     const today = new Date();
     const yesterday = new Date(today);
