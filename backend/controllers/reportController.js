@@ -51,19 +51,46 @@ exports.updateReport = async (req, res) => {
         if ((Date.now() - new Date(report.createdAt).getTime()) / 3600000 > 48) return res.status(403).json({ success: false, message: 'Cannot modify a report after 48 hours' });
         if (req.body.entryDate && !isValidEntryDate(req.body.entryDate)) return res.status(400).json({ success: false, message: 'Entry date must be today or yesterday.' });
         
+        // --- START OF FIX ---
+        // Create a new array from the existing history to avoid mutation issues.
+        const newHistory = [...report.history];
         const changes = {};
-        if (req.body.productName && req.body.productName !== report.productName) changes.productName = { from: report.productName, to: req.body.productName };
-        if (req.body.quantity && req.body.quantity != report.quantity) changes.quantity = { from: report.quantity, to: req.body.quantity };
-        if (req.body.entryDate && new Date(req.body.entryDate).toISOString().split('T')[0] !== report.entryDate) changes.entryDate = { from: report.entryDate, to: req.body.entryDate };
-        
-        let currentHistory = report.history || [];
-        if (Object.keys(changes).length > 0) {
-            currentHistory.push({ modifiedBy: req.user.username, modifiedAt: new Date(), changes });
-        }
 
-        await report.update({ ...req.body, history: currentHistory });
-        res.status(200).json({ success: true, data: report });
-    } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+        // Check each field for a change before adding it to the history log.
+        if (req.body.productName && req.body.productName !== report.productName) {
+            changes.productName = { from: report.productName, to: req.body.productName };
+        }
+        if (req.body.quantity && Number(req.body.quantity) !== report.quantity) {
+            changes.quantity = { from: report.quantity, to: Number(req.body.quantity) };
+        }
+        // Correctly compare the DATEONLY string (YYYY-MM-DD)
+        if (req.body.entryDate && req.body.entryDate !== report.entryDate) {
+            changes.entryDate = { from: report.entryDate, to: req.body.entryDate };
+        }
+        
+        // If the changes object has any keys, it means something was modified.
+        if (Object.keys(changes).length > 0) {
+            newHistory.push({
+                modifiedBy: req.user.username,
+                modifiedAt: new Date(),
+                changes: changes
+            });
+        }
+        
+        // Update the report with the new data from the request body AND the new history array.
+        const updatedReport = await report.update({
+            productName: req.body.productName,
+            quantity: req.body.quantity,
+            entryDate: req.body.entryDate,
+            history: newHistory
+        });
+        // --- END OF FIX ---
+
+        res.status(200).json({ success: true, data: updatedReport });
+    } catch (error) { 
+        console.error("Update Error:", error);
+        res.status(400).json({ success: false, message: error.message }); 
+    }
 };
 
 exports.deleteReport = async (req, res) => {
@@ -85,7 +112,6 @@ exports.getReportSummary = async (req, res) => {
             group: ['productName'],
             order: [[sequelize.fn('SUM', sequelize.col('quantity')), 'DESC']]
         });
-        // Remap the result to match the frontend's expected format {_id, totalQuantity}
         const formattedResult = quantityByProduct.map(r => ({_id: r.productName, totalQuantity: r.dataValues.totalQuantity}));
         res.status(200).json({ success: true, data: { quantityByProduct: formattedResult } });
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
@@ -114,7 +140,7 @@ exports.exportReportsToExcel = async (req, res) => {
             worksheet.addRow({
                 productName: report.productName,
                 quantity: report.quantity,
-                entryDate: report.entryDate, // Already YYYY-MM-DD
+                entryDate: report.entryDate,
                 submittedByUsername: report.submittedByUsername,
                 createdAt: moment(report.createdAt).format('YYYY-MM-DD HH:mm:ss'),
                 modifications: report.history ? report.history.length : 0
